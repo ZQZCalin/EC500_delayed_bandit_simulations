@@ -44,7 +44,6 @@ def delayed_bandit_FTRL(expert_loss, delay, tuning="simple"):
 
   for t in range(1, T+1):     # 1-indexing
 
-    print(t)
     # simple tuning of eta_t
     total_missing_obs += np.sum( delayed_rounds[:t-1] >= t )
     eta_inv = sqrt( 2*total_missing_obs / log(d) )
