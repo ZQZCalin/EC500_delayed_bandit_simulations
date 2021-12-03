@@ -1,6 +1,6 @@
 # EC500: Delayed Multi-armed Bandits
 
-Simulation of EC500 class project on delayed multi-armed bandit algorithm based on [Zimmert and Seldin's work](Simulation of EC500 class project on Delayed Multi-armed Bandit).
+Simulation of EC500 class project on delayed multi-armed bandit algorithm based on [Zimmert and Seldin's work](https://arxiv.org/abs/1910.06054).
 The bandit algorithm receives losses from local updates of online sub-gradient descent (OSD) algorithms with different learning rates.
 
 ### Instruction
