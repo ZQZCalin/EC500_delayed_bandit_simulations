@@ -43,10 +43,10 @@ def optimize_mixed_entropy(L_obs, t, eta_inv):
         inverse of learning rate
     '''
 
-    lambda_opt = optimize_V_shaped(reduced_KKT_equation, epsilon=1E-4, start=np.max(-L_obs), end=100, args=(L_obs, t, eta_inv))
+    lambda_opt = optimize_V_shaped(reduced_KKT_equation, epsilon=1E-4, start=0, end=100, args=(L_obs, t, eta_inv))
     x_opt = find_x_from_lambda(lambda_opt, L_obs, t, eta_inv)
 
-    return x_opt
+    return x_opt, lambda_opt
 
 def lambert_z(lambda_, L, t, eta_inv):
     '''
@@ -78,7 +78,7 @@ def find_x_from_lambda(lambda_, L, t, eta_inv):
 
     return np.absolute(x)
 
-def optimize_V_shaped(func, epsilon, start=0, end=100, args=()):
+def optimize_V_shaped_v1(func, epsilon, start=0, end=100, args=()):
     '''
     optimize a V-shaped function and return its minimum
 
@@ -99,6 +99,27 @@ def optimize_V_shaped(func, epsilon, start=0, end=100, args=()):
             return optimize_V_shaped(func, epsilon, start=start + max(0, i-2)*delta, end=start + i*delta, args=args)
         else:
             left = right        # move to right
+
+
+def optimize_V_shaped(func, epsilon, start=0, end=100, args=()):
+    '''
+    optimize a V-shaped function and return its minimum
+
+    idea: recursively check the middle point whether it's increasing (go to left) or decreasing (go to right)
+    '''
+    if end - start <= epsilon/10:
+        return (start + end) / 2
+
+    middle = (start + end) / 2
+
+    if func(middle, *args) < func(middle+epsilon, *args):
+        # increasing at middle: go left
+        end = middle
+    else:
+        # decreasing at middle: go right
+        start = middle
+
+    return optimize_V_shaped(func, epsilon, start=start, end=end, args=args)
 
 
 def runif_in_simplex(n):
@@ -128,9 +149,9 @@ def test_optimizer(L, t, eta_inv):
     plt.ylim(0,10)
     plt.show()
 
-    x = optimize_mixed_entropy(L, t, eta_inv)
+    x, l = optimize_mixed_entropy(L, t, eta_inv)
     cost = target(x, L, t, eta_inv)
-    print(f"optimal x is {x}, optimal cost is {cost}")
+    print(f"optimal x is {x}, optimal lambda is {l}, optimal cost is {cost}")
 
     s = 0
     for _ in range(1000):
@@ -148,7 +169,7 @@ def test_optimizer(L, t, eta_inv):
 if __name__ == "__main__":
     d = 5
     # L = np.random.multivariate_normal(np.ones(d), 100*np.identity(d))
-    L = np.array([-50, 4, 31, 5])
+    L = np.array([-20, 4, 31, 5])
     t = 100
     eta_inv = 0.2
     

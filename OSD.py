@@ -5,7 +5,7 @@ def OSD(T, x_init, alpha, loss_grad):
   Update
   ------
   Subgradient descent using time-varying learning rate:
-          x_{t+1} = x_t - eta_t * g_t,
+        x_{t+1} = x_t - eta_t * g_t,
   where eta_t = alpha / t and alpha is hyperparameter
 
   Input

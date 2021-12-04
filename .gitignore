@@ -2,3 +2,9 @@ __pycache__/
 
 # data
 OSD_time_series_data/
+data/
+
+# others
+require.txt
+OSD.py
+delayed)FTRL.py
