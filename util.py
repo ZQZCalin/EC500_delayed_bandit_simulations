@@ -1,7 +1,6 @@
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-from numpy.lib.npyio import save
 
 def check_exists(path):
   '''

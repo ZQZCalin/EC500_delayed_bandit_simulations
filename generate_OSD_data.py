@@ -1,7 +1,5 @@
 import numpy as np
 import argparse
-from matplotlib import pyplot as plt
-from OSD import OSD
 from util import plot_avg_cum_loss, save_loss, make_dir
 
 
@@ -120,5 +118,5 @@ if __name__ == "__main__":
     parser.add_argument("--time_series", type=str,
                         default="time-series.txt", help="Time series path")
     args = parser.parse_args()
-    
+
     generate_data(args)

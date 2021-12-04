@@ -7,4 +7,6 @@ data/
 # others
 require.txt
 OSD.py
-delayed)FTRL.py
+delayed_FTRL.py
+optimizers.py
+regularizers.py
