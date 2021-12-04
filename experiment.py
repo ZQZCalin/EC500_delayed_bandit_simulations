@@ -1,19 +1,22 @@
 import numpy as np
 import argparse
+import re
 from math import sqrt, log
 from cvxopt import solvers, matrix, spdiag, mul as cvx_mul, log as cvx_log, sqrt as cvx_sqrt
-from util import plot_avg_cum_loss
+from util import plot_avg_cum_loss, make_dir
 
 
 class Model:
     '''
     Model for delayed MAB algorithm
     '''
-    def __init__(self, K: int, reg: str="mixed_entropy", tune: str="simple") -> None:
+    def __init__(self, K: int, reg: str="mixed_entropy", tune: str="simple", 
+    delay: str="zero", result_dir: str="result") -> None:
         # parameters
         self.K = K  # number of arms
         self.reg = reg
         self.tune = tune
+        self.delay = delay
         if not reg in ["negative_entropy", "Tsallis_entropy", "mixed_entropy"]:
             raise("invalid regularizer")
         if not tune in ["simple", "advanced"]:
@@ -24,6 +27,9 @@ class Model:
         self.cum_loss = 0
         self.avg_cum_loss = []
         self.L_obs = np.zeros(self.K)   # unbiased loss estimator
+        # check result directory
+        self.result_dir = result_dir
+        self.save()
 
     def reset(self) -> None:
         '''
@@ -81,7 +87,23 @@ class Model:
         # need to do this slight normalization
         return np.array(soln).ravel() / sum(soln)
 
-    def train(self, losses, delays, verbose=False) -> None:
+    def generate_delay(self, size) -> np.array:
+        '''
+        Generate sequence of delays
+        '''
+        if re.findall("^uniform", self.delay):
+            _, a, b = self.delay.split("_")
+            delays = np.random.uniform(low=float(a), high=float(b), size=(size,))
+        elif re.findall("^Gaussian", self.delay):
+            _, mu, sigma = self.delay.split("_")
+            delays = np.random.normal(loc=float(mu), scale=float(sigma), size=(size,))
+            delays = np.maximum(delays, np.zeros(size))
+        else:
+            delays = np.zeros(size)
+
+        return delays.astype(int)
+
+    def train(self, losses, verbose=False) -> None:
         '''
         Run delayed FTRL
         '''
@@ -89,7 +111,9 @@ class Model:
         self.reset()
 
         T = len(losses)
-        delayed_rounds = np.arange(1, T+1, dtype=int) + delays
+
+        # generate delays
+        delayed_rounds = np.arange(1, T+1, dtype=int) + self.generate_delay(size=T)
 
         # simple tuning
         total_missing_obs = 0
@@ -120,27 +144,48 @@ class Model:
             if verbose and t % (T//100) == 0:
                 print( "progress: %d/100" % (t//(T//100)) )
     
-    def evaluate(self, path=None) -> None:
+    def save(self) -> None:
         '''
-        Plot average cumulative loss and save to `path`
+        Create result directory
         '''
-        plot_avg_cum_loss(self.avg_cum_loss, start=0, title="avg_cum_loss_bandit", save_to=path)
+        # make directory
+        make_dir(self.result_dir)
+        # save experiment config
+        config = {
+            "Regularizer": self.reg,
+            "Tuning method": self.tune,
+            "Delays": self.delay,
+            "Losses": "Local OSD on time series",
+            "Other notes": ""
+        }
+        with open(f"{self.result_dir}/config.txt", "w") as f:
+            f.writelines( '\n'.join([ f"{key}: {value}" for (key, value) in config.items() ]) )
+
+    def evaluate(self) -> None:
+        '''
+        Evaluate the model and save experiment results
+        '''
+        # save average cum loss
+        np.savetxt(f"{self.result_dir}/avg_cum_loss.txt", self.avg_cum_loss)
+        # save action history
+        np.savetxt(f"{self.result_dir}/action_history.txt", self.actions)
+        # plot and save average cum loss
+        plot_avg_cum_loss(self.avg_cum_loss, save_to=f"{self.result_dir}/avg_cum_loss.png")
 
 
 def run_experiment(args):
     # Load OSD losses
     K = 7
-    print("-------------loading data------------")
+    print("------------loading data------------")
     OSD_loss = np.concatenate([np.loadtxt(
         "%s/alpha=1E%d.txt" % (args.data_dir, i))[:, None] for i in range(-3, 4)], axis=1)   # (T,d)
 
     T = len(OSD_loss)
-    # delays = np.random.randint(0, 50, size=(T, ))
-    zero_delays = np.zeros(T)
 
-    model = Model(K, reg=args.regularizer, tune=args.tuning)
-    print("-------------training------------")
-    model.train(losses=OSD_loss, delays=zero_delays, verbose=True)
+    model = Model(K, reg=args.regularizer, tune=args.tuning, delay=args.delay, result_dir=args.result_dir)
+    print("------------training------------")
+    model.train(losses=OSD_loss, verbose=True)
+    print("------------saving model------------")
     model.evaluate()
 
     return model
@@ -155,6 +200,10 @@ if __name__ == "__main__":
                         help="Regularizer: mixed_entropy, negative_entropy or Tsallis_entropy")
     parser.add_argument("--tuning", type=str, default="simple",
                         help="Tuning method: simple, or advanced")
+    parser.add_argument("--delay", type=str, default="zero", 
+                        help="Communication delay distribution: zero, uniform_a_b, or Gaussian_mean_std")
+    parser.add_argument("--result_dir", type=str, default="Results/experiment",
+                        help="Experiment result folder path")
     args = parser.parse_args()
 
     model = run_experiment(args)

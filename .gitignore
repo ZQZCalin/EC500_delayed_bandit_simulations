@@ -3,6 +3,7 @@ __pycache__/
 # data
 OSD_time_series_data/
 data/
+results/
 
 # others
 require.txt

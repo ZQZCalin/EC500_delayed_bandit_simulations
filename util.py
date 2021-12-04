@@ -10,12 +10,15 @@ def check_exists(path):
     raise TypeError("file already exists")
 
 def make_dir(dir):
-  try:
-    if os.path.isdir(dir):
-      raise TypeError("directory already exists")
-    os.mkdir(dir)
-  except TypeError as e:
-    print("make directory failed: "+str(e))
+  if os.path.isdir(dir):
+    raise TypeError("directory already exists")
+  os.mkdir(dir)
+  # try:
+  #   if os.path.isdir(dir):
+  #     raise TypeError("directory already exists")
+  #   os.mkdir(dir)
+  # except TypeError as e:
+  #   print("make directory failed: "+str(e))
 
 def plot_avg_cum_loss(avg_cum_loss, start=0, title=None, save_to=None):
   '''
