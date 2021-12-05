@@ -4,6 +4,7 @@ __pycache__/
 OSD_time_series_data/
 data/
 results/
+results_v1.1/
 
 # others
 require.txt
